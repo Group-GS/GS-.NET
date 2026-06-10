@@ -5,10 +5,13 @@
 
 ---
 
-## 📹 Demonstração e Apresentação
+# Demonstração e Apresentação
 
-* [Vídeo de Demonstração - YouTube]()
-* [Vídeo Pitch - YouTube]()
+## Vídeo Pitch
+* https://www.youtube.com/watch?v=DtSzmFYKgts
+
+## Vídeo Demonstrativo
+* https://www.youtube.com/watch?v=Yc95m3ID53Q
 
 ---
 
