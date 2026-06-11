@@ -18,7 +18,7 @@ namespace AgroSpace.Api.Models
         public string TipoSensor { get; set; }
 
         [Required]
-        [MaxLength(10)]
+        [MaxLength(20)]
         [Column("status")]
         public string Status { get; set; }
 
@@ -29,6 +29,6 @@ namespace AgroSpace.Api.Models
         // Propriedade de Navegação
         [JsonIgnore]
         [ForeignKey("IdLocal")]
-        public Local Local { get; set; }
+        public Local? Local { get; set; }
     }
 }

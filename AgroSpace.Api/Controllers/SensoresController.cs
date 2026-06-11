@@ -42,9 +42,8 @@ namespace AgroSpace.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<Sensor>> PostSensor(Sensor sensor)
         {
-            // Validação
-            var localExiste = await _context.Locais.AnyAsync(l => l.IdLocal == sensor.IdLocal);
-            if (!localExiste)
+            var local = await _context.Locais.FirstOrDefaultAsync(l => l.IdLocal == sensor.IdLocal);
+            if (local == null)
             {
                 return BadRequest("Não é possível cadastrar o sensor: O Local informado não existe.");
             }
@@ -60,13 +59,10 @@ namespace AgroSpace.Api.Controllers
         public async Task<IActionResult> PutSensor(int id, Sensor sensor)
         {
             if (id != sensor.IdSensor)
-            {
                 return BadRequest("O ID da URL não corresponde ao ID do objeto.");
-            }
 
-            // Validação
-            var localExiste = await _context.Locais.AnyAsync(l => l.IdLocal == sensor.IdLocal);
-            if (!localExiste)
+            var local = await _context.Locais.FirstOrDefaultAsync(l => l.IdLocal == sensor.IdLocal);
+            if (local == null)
             {
                 return BadRequest("Não é possível atualizar: O Local informado não existe.");
             }
@@ -110,7 +106,7 @@ namespace AgroSpace.Api.Controllers
 
         private bool SensorExists(int id)
         {
-            return _context.Sensores.Any(e => e.IdSensor == id);
+            return _context.Sensores.FirstOrDefault(e => e.IdSensor == id) != null;
         }
     }
 }
