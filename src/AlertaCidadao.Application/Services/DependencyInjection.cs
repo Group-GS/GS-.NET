@@ -1,6 +1,17 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace AlertaCidadao.Application.Services;
 
-public class DependencyInjection
+public static class DependencyInjection
 {
-    
+    public static IServiceCollection AddApplicationServices(
+        this IServiceCollection services)
+    {
+        services.AddScoped<
+            IPontoMonitoramentoService,
+            PontoMonitoramentoService
+        >();
+
+        return services;
+    }
 }

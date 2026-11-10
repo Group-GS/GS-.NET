@@ -1,6 +1,9 @@
 namespace AlertaCidadao.Application.Services;
 
-public class TipoErroOperacao
+public enum TipoErroOperacao
 {
-    
+    Nenhum,
+    Validacao,
+    NaoEncontrado,
+    Conflito
 }
