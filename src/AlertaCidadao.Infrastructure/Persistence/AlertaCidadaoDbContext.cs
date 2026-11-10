@@ -186,12 +186,12 @@ public class AlertaCidadaoDbContext : DbContext
             entity.Property(x => x.ChuvaMm)
                 .HasColumnName("CHUVA_MM")
                 .HasColumnType("NUMBER(10,2)")
-                .HasDefaultValue(0);
+                .HasDefaultValue(0m);
 
             entity.Property(x => x.ElevacaoCmH)
                 .HasColumnName("ELEVACAO_CM_H")
                 .HasColumnType("NUMBER(10,2)")
-                .HasDefaultValue(0);
+                .HasDefaultValue(0m);
 
             entity.Property(x => x.DataHoraLeitura)
                 .HasColumnName("DATA_HORA_LEITURA")
@@ -209,7 +209,8 @@ public class AlertaCidadaoDbContext : DbContext
 
             entity.HasIndex(x => x.ChaveEvento)
                 .IsUnique()
-                .HasDatabaseName("UQ_LEITURA_EVENTO");
+                .HasDatabaseName("UQ_LEITURA_EVENTO")
+                .HasFilter("\"CHAVE_EVENTO\" IS NOT NULL");
 
             entity.HasIndex(x => new { x.IdPonto, x.DataHoraLeitura })
                 .IsUnique()
