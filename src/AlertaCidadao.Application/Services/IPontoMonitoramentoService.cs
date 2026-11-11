@@ -8,6 +8,10 @@ public interface IPontoMonitoramentoService
         CancellationToken cancellationToken = default
     );
 
+    Task<IReadOnlyList<PontoMonitoramentoDto>> ListarTodosAsync(
+        CancellationToken cancellationToken = default
+    );
+
     Task<ResultadoOperacao<PontoMonitoramentoDto>> ObterPorIdAsync(
         long id,
         CancellationToken cancellationToken = default

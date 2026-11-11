@@ -1,6 +1,53 @@
 @AlertaCidadao.API_HostAddress = http://localhost:5075
 
-GET {{AlertaCidadao.API_HostAddress}}/weatherforecast/
+### Documento OpenAPI
+GET {{AlertaCidadao.API_HostAddress}}/openapi/v1.json
 Accept: application/json
 
-###
+### Listar pontos ativos
+GET {{AlertaCidadao.API_HostAddress}}/api/pontos-monitoramento
+Accept: application/json
+
+### Criar ponto de monitoramento
+POST {{AlertaCidadao.API_HostAddress}}/api/pontos-monitoramento
+Content-Type: application/json
+
+{
+  "codigo": "PONTO-001",
+  "nome": "Ponte Central",
+  "descricao": "Ponto de monitoramento de nível do rio",
+  "logradouro": "Rua Central",
+  "bairro": "Centro",
+  "cidade": "Olimpia",
+  "uf": "SP",
+  "latitude": -20.737,
+  "longitude": -48.911
+}
+
+### Listar usuários
+GET {{AlertaCidadao.API_HostAddress}}/api/usuarios
+Accept: application/json
+
+### Exemplo de cadastro de usuário
+POST {{AlertaCidadao.API_HostAddress}}/api/usuarios
+Content-Type: application/json
+
+{
+  "nome": "Usuário Teste",
+  "email": "usuario.teste@example.com",
+  "senha": "SenhaForte123",
+  "telefone": "17999999999",
+  "perfil": "CIDADAO"
+}
+
+### Listar leituras
+GET {{AlertaCidadao.API_HostAddress}}/api/leituras-enchente
+Accept: application/json
+
+### Listar alertas
+GET {{AlertaCidadao.API_HostAddress}}/api/alertas
+Accept: application/json
+
+### Listar metadados de idempotência
+GET {{AlertaCidadao.API_HostAddress}}/api/requisicoes-idempotencia
+Accept: application/json

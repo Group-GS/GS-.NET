@@ -28,6 +28,16 @@ public sealed class PontoMonitoramentoRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PontoMonitoramento>> ListarTodosAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.PontosMonitoramento
+            .AsNoTracking()
+            .OrderBy(p => p.Nome)
+            .ThenBy(p => p.IdPonto)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PontoMonitoramento?> ObterPorIdAsync(
         long id,
         CancellationToken cancellationToken = default)

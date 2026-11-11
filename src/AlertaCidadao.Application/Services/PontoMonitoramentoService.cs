@@ -25,6 +25,13 @@ public sealed class PontoMonitoramentoService
         return pontos.Select(MapearDto).ToList();
     }
 
+    public async Task<IReadOnlyList<PontoMonitoramentoDto>> ListarTodosAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var pontos = await _repository.ListarTodosAsync(cancellationToken);
+        return pontos.Select(MapearDto).ToList();
+    }
+
     public async Task<ResultadoOperacao<PontoMonitoramentoDto>>
         ObterPorIdAsync(
             long id,
@@ -32,9 +39,8 @@ public sealed class PontoMonitoramentoService
     {
         if (id <= 0)
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
-                TipoErroOperacao.Validacao,
-                "O identificador deve ser maior que zero."
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouValidacao(
+                "id", "O identificador deve ser maior que zero."
             );
         }
 
@@ -75,9 +81,20 @@ public sealed class PontoMonitoramentoService
 
         if (erro is not null)
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
-                TipoErroOperacao.Validacao,
-                erro
+            if (erro.Contains("latitude e longitude juntas", StringComparison.OrdinalIgnoreCase))
+            {
+                return ResultadoOperacao<PontoMonitoramentoDto>.FalhouComErros(
+                    TipoErroOperacao.Validacao,
+                    "Informe os dois campos de coordenadas.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["Latitude"] = [erro],
+                        ["Longitude"] = [erro]
+                    });
+            }
+
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouValidacao(
+                CampoDaMensagem(erro), erro
             );
         }
 
@@ -88,8 +105,9 @@ public sealed class PontoMonitoramentoService
             null,
             cancellationToken))
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouComCampo(
                 TipoErroOperacao.Conflito,
+                "Codigo",
                 "Já existe um ponto de monitoramento com esse código."
             );
         }
@@ -127,9 +145,8 @@ public sealed class PontoMonitoramentoService
     {
         if (id <= 0)
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
-                TipoErroOperacao.Validacao,
-                "O identificador deve ser maior que zero."
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouValidacao(
+                "id", "O identificador deve ser maior que zero."
             );
         }
 
@@ -147,9 +164,20 @@ public sealed class PontoMonitoramentoService
 
         if (erro is not null)
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
-                TipoErroOperacao.Validacao,
-                erro
+            if (erro.Contains("latitude e longitude juntas", StringComparison.OrdinalIgnoreCase))
+            {
+                return ResultadoOperacao<PontoMonitoramentoDto>.FalhouComErros(
+                    TipoErroOperacao.Validacao,
+                    "Informe os dois campos de coordenadas.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["Latitude"] = [erro],
+                        ["Longitude"] = [erro]
+                    });
+            }
+
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouValidacao(
+                CampoDaMensagem(erro), erro
             );
         }
 
@@ -173,8 +201,9 @@ public sealed class PontoMonitoramentoService
             id,
             cancellationToken))
         {
-            return ResultadoOperacao<PontoMonitoramentoDto>.Falhou(
+            return ResultadoOperacao<PontoMonitoramentoDto>.FalhouComCampo(
                 TipoErroOperacao.Conflito,
+                "Codigo",
                 "Já existe outro ponto com esse código."
             );
         }
@@ -205,9 +234,8 @@ public sealed class PontoMonitoramentoService
     {
         if (id <= 0)
         {
-            return ResultadoOperacao<bool>.Falhou(
-                TipoErroOperacao.Validacao,
-                "O identificador deve ser maior que zero."
+            return ResultadoOperacao<bool>.FalhouValidacao(
+                "id", "O identificador deve ser maior que zero."
             );
         }
 
@@ -294,6 +322,20 @@ public sealed class PontoMonitoramentoService
         return string.IsNullOrWhiteSpace(uf)
             ? null
             : uf.Trim().ToUpperInvariant();
+    }
+
+    private static string CampoDaMensagem(string mensagem)
+    {
+        if (mensagem.Contains("código", StringComparison.OrdinalIgnoreCase)) return "Codigo";
+        if (mensagem.Contains("nome", StringComparison.OrdinalIgnoreCase)) return "Nome";
+        if (mensagem.Contains("descrição", StringComparison.OrdinalIgnoreCase)) return "Descricao";
+        if (mensagem.Contains("logradouro", StringComparison.OrdinalIgnoreCase)) return "Logradouro";
+        if (mensagem.Contains("bairro", StringComparison.OrdinalIgnoreCase)) return "Bairro";
+        if (mensagem.Contains("cidade", StringComparison.OrdinalIgnoreCase)) return "Cidade";
+        if (mensagem.Contains("UF", StringComparison.OrdinalIgnoreCase)) return "Uf";
+        if (mensagem.Contains("latitude", StringComparison.OrdinalIgnoreCase)) return "Latitude";
+        if (mensagem.Contains("longitude", StringComparison.OrdinalIgnoreCase)) return "Longitude";
+        return "request";
     }
 
     private static PontoMonitoramentoDto MapearDto(

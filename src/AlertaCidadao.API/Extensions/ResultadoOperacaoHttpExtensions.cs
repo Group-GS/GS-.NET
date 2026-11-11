@@ -1,31 +1,26 @@
+using AlertaCidadao.Application.DTOs;
 using AlertaCidadao.Application.Services;
 
 namespace AlertaCidadao.API.Extensions;
 
 public static class ResultadoOperacaoHttpExtensions
 {
-    public static IResult ToErrorResult<T>(
-        this ResultadoOperacao<T> resultado)
+    public static IResult ToErrorResult<T>(this ResultadoOperacao<T> resultado)
     {
-        var resposta = new
+        var (status, codigo) = resultado.TipoErro switch
         {
-            mensagem = resultado.Mensagem
+            TipoErroOperacao.Validacao => (StatusCodes.Status400BadRequest, "VALIDACAO"),
+            TipoErroOperacao.NaoEncontrado => (StatusCodes.Status404NotFound, "NAO_ENCONTRADO"),
+            TipoErroOperacao.Conflito => (StatusCodes.Status409Conflict, "CONFLITO"),
+            _ => (StatusCodes.Status500InternalServerError, "ERRO_INTERNO")
         };
 
-        return resultado.TipoErro switch
-        {
-            TipoErroOperacao.Validacao =>
-                Results.BadRequest(resposta),
+        var mensagem = status == StatusCodes.Status500InternalServerError
+            ? "Ocorreu um erro interno. Tente novamente ou contate o suporte."
+            : resultado.Mensagem ?? "Não foi possível concluir a operação.";
 
-            TipoErroOperacao.NaoEncontrado =>
-                Results.NotFound(resposta),
-
-            TipoErroOperacao.Conflito =>
-                Results.Conflict(resposta),
-
-            _ => Results.Problem(
-                "Ocorreu um erro inesperado."
-            )
-        };
+        return Results.Json(
+            new ApiErrorResponse(codigo, mensagem, resultado.Erros, DateTimeOffset.UtcNow),
+            statusCode: status);
     }
 }
