@@ -1,3 +1,4 @@
+using AlertaCidadao.API.Filters;
 using AlertaCidadao.API.Extensions;
 using AlertaCidadao.Application.DTOs;
 using AlertaCidadao.Application.Services;
@@ -40,9 +41,10 @@ public static class PontoMonitoramentoEndpoints
             if (!resultado.Sucesso) return resultado.ToErrorResult();
             return Results.Created($"/api/pontos-monitoramento/{resultado.Dados!.IdPonto}", resultado.Dados);
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("CriarPontoMonitoramento")
             .WithSummary("Cadastra um novo ponto de monitoramento.")
-            .WithDescription("Cadastra um ponto com código único, nome e dados opcionais de endereço e coordenadas. Latitude e longitude devem ser informadas juntas.")
+            .WithDescription("Cadastra um ponto com código único, nome e dados opcionais de endereço e coordenadas. Latitude e longitude devem ser informadas juntas. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
             .Produces<PontoMonitoramentoDto>(StatusCodes.Status201Created).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
         grupo.MapPut("/{id:long}", async Task<IResult> (long id, AtualizarPontoMonitoramentoRequest request, IPontoMonitoramentoService service, CancellationToken ct) =>
@@ -52,6 +54,7 @@ public static class PontoMonitoramentoEndpoints
             var resultado = await service.AtualizarAsync(id, request, ct);
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("AtualizarPontoMonitoramento")
             .WithSummary("Atualiza um ponto de monitoramento.")
             .WithDescription("Atualiza código, nome, endereço, coordenadas e situação do ponto informado.")
@@ -62,6 +65,7 @@ public static class PontoMonitoramentoEndpoints
             var resultado = await service.ExcluirAsync(id, ct);
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("DesativarPontoMonitoramento")
             .WithSummary("Desativa um ponto de monitoramento.")
             .WithDescription("Desativa o ponto sem apagar seu histórico de leituras.")

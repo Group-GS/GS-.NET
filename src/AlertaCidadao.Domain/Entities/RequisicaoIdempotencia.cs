@@ -8,6 +8,9 @@ public class RequisicaoIdempotencia
 
     public string Rota { get; set; } = string.Empty;
 
+    /// <summary>Hash SHA-256 do método, rota e conteúdo da requisição original.</summary>
+    public string? FingerprintHash { get; set; }
+
     public int? StatusHttp { get; set; }
 
     public string? RespostaJson { get; set; }

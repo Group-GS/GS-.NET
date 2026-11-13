@@ -1,3 +1,4 @@
+using AlertaCidadao.API.Filters;
 using AlertaCidadao.API.Extensions;
 using AlertaCidadao.Application.DTOs;
 using AlertaCidadao.Application.Services;
@@ -33,9 +34,10 @@ public static class UsuarioEndpoints
             if (!resultado.Sucesso) return resultado.ToErrorResult();
             return Results.Created($"/api/usuarios/{resultado.Dados!.IdUsuario}", resultado.Dados);
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("CriarUsuario")
             .WithSummary("Cadastra um novo usuário.")
-            .WithDescription("Valida nome, e-mail, senha, telefone e perfil. A senha é armazenada usando PBKDF2-SHA256 e nunca é devolvida pela API.")
+            .WithDescription("Valida nome, e-mail, senha, telefone e perfil. A senha é armazenada usando PBKDF2-SHA256 e nunca é devolvida pela API. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
             .Produces<UsuarioDto>(StatusCodes.Status201Created).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
         grupo.MapPut("/{id:long}", async Task<IResult> (long id, AtualizarUsuarioRequest request, IUsuarioService service, CancellationToken ct) =>
@@ -45,6 +47,7 @@ public static class UsuarioEndpoints
             var resultado = await service.AtualizarAsync(id, request, ct);
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("AtualizarUsuario")
             .WithSummary("Atualiza um usuário existente.")
             .WithDescription("Atualiza nome, e-mail, telefone, perfil e situação. A senha é opcional; quando enviada, é gerado um novo hash PBKDF2-SHA256.")
@@ -55,6 +58,7 @@ public static class UsuarioEndpoints
             var resultado = await service.ExcluirAsync(id, ct);
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("DesativarUsuario")
             .WithSummary("Desativa um usuário.")
             .WithDescription("Desativa o usuário sem apagar fisicamente o registro. O histórico permanece preservado.")

@@ -1,4 +1,4 @@
-﻿using AlertaCidadao.Domain.Entities;
+using AlertaCidadao.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlertaCidadao.Infrastructure.Persistence;
@@ -318,6 +318,10 @@ public class AlertaCidadaoDbContext : DbContext
                 .HasColumnName("ROTA")
                 .HasMaxLength(250)
                 .IsRequired();
+
+            entity.Property(x => x.FingerprintHash)
+                .HasColumnName("FINGERPRINT_HASH")
+                .HasMaxLength(64);
 
             entity.Property(x => x.StatusHttp)
                 .HasColumnName("STATUS_HTTP")

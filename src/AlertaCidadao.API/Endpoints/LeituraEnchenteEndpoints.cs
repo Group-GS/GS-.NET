@@ -1,3 +1,4 @@
+using AlertaCidadao.API.Filters;
 using AlertaCidadao.API.Extensions;
 using AlertaCidadao.Application.DTOs;
 using AlertaCidadao.Application.Services;
@@ -36,9 +37,10 @@ public static class LeituraEnchenteEndpoints
             if (!resultado.Sucesso) return resultado.ToErrorResult();
             return Results.Created($"/api/leituras-enchente/{resultado.Dados!.IdLeitura}", resultado.Dados);
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("CriarLeituraEnchente")
             .WithSummary("Registra uma nova leitura de enchente.")
-            .WithDescription("Registra uma medição vinculada a um ponto ativo. A origem aceita SIMULACAO, SENSOR ou MANUAL; chave de evento e data/hora duplicadas são rejeitadas.")
+            .WithDescription("Registra uma medição vinculada a um ponto ativo. A origem aceita SIMULACAO, SENSOR ou MANUAL; chave de evento e data/hora duplicadas são rejeitadas. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
             .Produces<LeituraEnchenteDto>(StatusCodes.Status201Created).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
         grupo.MapPut("/{id:long}", async Task<IResult> (long id, AtualizarLeituraEnchenteRequest request, ILeituraEnchenteService service, CancellationToken ct) =>
@@ -48,6 +50,7 @@ public static class LeituraEnchenteEndpoints
             var resultado = await service.AtualizarAsync(id, request, ct);
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("AtualizarLeituraEnchente")
             .WithSummary("Atualiza uma leitura existente.")
             .WithDescription("Atualiza os dados de medição e sua origem. O ponto e a chave do evento permanecem vinculados ao registro original.")
@@ -58,6 +61,7 @@ public static class LeituraEnchenteEndpoints
             var resultado = await service.ExcluirAsync(id, ct);
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("ExcluirLeituraEnchente")
             .WithSummary("Exclui uma leitura de enchente.")
             .WithDescription("Remove a leitura quando ela não possui alerta associado. Se houver alerta vinculado, a API retorna conflito para preservar a integridade referencial.")

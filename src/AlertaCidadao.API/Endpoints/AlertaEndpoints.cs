@@ -1,3 +1,4 @@
+using AlertaCidadao.API.Filters;
 using AlertaCidadao.API.Extensions;
 using AlertaCidadao.Application.DTOs;
 using AlertaCidadao.Application.Services;
@@ -38,9 +39,10 @@ public static class AlertaEndpoints
             if (!resultado.Sucesso) return resultado.ToErrorResult();
             return Results.Created($"/api/alertas/{resultado.Dados!.IdAlerta}", resultado.Dados);
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("CriarAlerta")
             .WithSummary("Cria um alerta para uma leitura.")
-            .WithDescription("Cria um alerta associado a uma leitura existente. Cada leitura pode ter apenas um alerta associado.")
+            .WithDescription("Cria um alerta associado a uma leitura existente. Cada leitura pode ter apenas um alerta associado. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
             .Produces<AlertaDto>(StatusCodes.Status201Created).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
         grupo.MapPut("/{id:long}", async Task<IResult> (long id, AtualizarAlertaRequest request, IAlertaService service, CancellationToken ct) =>
@@ -50,6 +52,7 @@ public static class AlertaEndpoints
             var resultado = await service.AtualizarAsync(id, request, ct);
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("AtualizarAlerta")
             .WithSummary("Atualiza os dados de um alerta.")
             .WithDescription("Atualiza classificação, probabilidade, mensagem explicativa, modelo e status. Quando o status passa para RESOLVIDO, a data de resolução é registrada.")
@@ -60,6 +63,7 @@ public static class AlertaEndpoints
             var resultado = await service.ExcluirAsync(id, ct);
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
+            .AddEndpointFilter<IdempotencyEndpointFilter>()
             .WithName("ExcluirAlerta")
             .WithSummary("Exclui um alerta.")
             .WithDescription("Remove o alerta indicado pelo ID. A operação não remove a leitura de enchente associada.")

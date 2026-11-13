@@ -246,6 +246,11 @@ namespace AlertaCidadao.Infrastructure.Persistence.Migrations
                         .HasColumnType("TIMESTAMP WITH TIME ZONE")
                         .HasColumnName("DATA_EXPIRACAO");
 
+                    b.Property<string>("FingerprintHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("NVARCHAR2(64)")
+                        .HasColumnName("FINGERPRINT_HASH");
+
                     b.Property<string>("MetodoHttp")
                         .IsRequired()
                         .HasMaxLength(10)
