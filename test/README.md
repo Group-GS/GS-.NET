@@ -1,25 +1,18 @@
 # Testes automatizados — AlertaCidadao
 
-Esta pasta fica fora de `src` e concentra os testes automatizados da solução.
+A suíte automatizada fica em `test/AlertaCidadao.UnitTests` e utiliza xUnit.
 
-## Estrutura
+## Cobertura
 
-```text
-test/
-└── AlertaCidadao.UnitTests/
-    ├── Fakes/
-    │   └── FakeUsuarioRepository.cs
-    ├── Security/
-    │   └── Pbkdf2PasswordHasherTests.cs
-    ├── Services/
-    │   └── UsuarioServiceTests.cs
-    ├── Validation/
-    │   └── CriarUsuarioRequestValidationTests.cs
-    ├── Usings.cs
-    └── AlertaCidadao.UnitTests.csproj
-```
+- **JWT:** geração do token, claims, expiração, autenticação Bearer, rejeição de token ausente/adulterado e autorização por perfil.
+- **Idempotência:** replay da resposta original para a mesma chave e payload, conflito para payload diferente, chave ausente e chave inválida.
+- **Rate Limiting:** política específica de Login, limite global, HTTP 429 e cabeçalho `Retry-After`.
+- **Health Checks:** Liveness, Readiness, endpoint agregado, Oracle acessível e Oracle indisponível.
+- **Demais regras:** serviços de usuário, hash PBKDF2 e validação de DTOs.
 
-## Executar
+Os testes de integração HTTP usam `Microsoft.AspNetCore.TestHost`. Os testes do filtro de idempotência usam o provedor EF Core InMemory para validar replay e conflito sequencial; a garantia de atomicidade e concorrência real depende do índice único e das transações Oracle e deve ser verificada também em ambiente Oracle de integração.
+
+## Executar no PowerShell
 
 Na raiz da solução:
 
@@ -28,12 +21,10 @@ dotnet restore .\AlertaCidadao.sln
 dotnet test .\AlertaCidadao.sln --configuration Release --logger "console;verbosity=normal"
 ```
 
-Os testes usam repositório falso em memória; não precisam de conexão com Oracle.
+Para executar somente os testes adicionados:
 
-## Escopo atual e limitações
+```powershell
+dotnet test .\test\AlertaCidadao.UnitTests\AlertaCidadao.UnitTests.csproj --configuration Release --filter "FullyQualifiedName~JwtAuthenticationIntegrationTests|FullyQualifiedName~IdempotencyEndpointFilterTests|FullyQualifiedName~RateLimitingIntegrationTests|FullyQualifiedName~HealthCheckEndpointTests"
+```
 
-Os testes cobrem comportamentos que existem nesta versão do código: geração de hash PBKDF2, regras do cadastro e atualização de usuários, validação de DTOs e ausência de campos de senha/hash no DTO público.
-
-**Esta cópia do projeto ainda não implementa autenticação JWT.** Não há endpoint de login, emissão/validação de token, configuração de autenticação Bearer ou políticas de autorização no `Program.cs`. Por isso, não foram criados testes que aleguem validar JWT. Quando essa implementação for adicionada, devem ser incluídos testes de autenticação e autorização, além de testes de integração HTTP.
-
-A execução dos testes deve ser confirmada no ambiente do desenvolvedor, com .NET SDK 9 instalado e acesso ao NuGet. O ZIP entregue contém o projeto e os casos de teste, mas não representa um resultado de execução local.
+Os testes não exigem uma conexão Oracle ativa. O teste de Health Check simula a ausência do contexto para validar a resposta de indisponibilidade e usa EF Core InMemory para validar o caminho saudável.
