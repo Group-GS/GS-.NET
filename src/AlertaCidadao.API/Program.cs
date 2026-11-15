@@ -7,6 +7,8 @@ using AlertaCidadao.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using AlertaCidadao.API.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +30,7 @@ if (jwtSettings.ExpirationMinutes is < 5 or > 1440)
 
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddApiRateLimiting(builder.Configuration);
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 
@@ -67,6 +70,8 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "API de monitoramento inteligente de enchentes."
     });
+    
+    options.OperationFilter<RateLimitOperationFilter>();
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -104,7 +109,12 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = "swagger";
 });
 
+app.UseRouting();
+
+app.UseRateLimiter();
+
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapGet("/", () => Results.Ok(new
