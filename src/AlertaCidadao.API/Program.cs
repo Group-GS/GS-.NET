@@ -2,13 +2,16 @@ using System.Text;
 using AlertaCidadao.API.Authentication;
 using AlertaCidadao.API.Endpoints;
 using AlertaCidadao.API.Extensions;
+using AlertaCidadao.API.HealthChecks;
 using AlertaCidadao.Application.Services;
 using AlertaCidadao.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using AlertaCidadao.API.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +34,15 @@ if (jwtSettings.ExpirationMinutes is < 5 or > 1440)
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApiRateLimiting(builder.Configuration);
+builder.Services.AddHealthChecks()
+    .AddCheck(
+        "self",
+        () => HealthCheckResult.Healthy("A API está em execução."),
+        tags: new[] { "live" })
+    .AddCheck<OracleDatabaseHealthCheck>(
+        "oracle",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready", "database" });
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 
@@ -133,6 +145,32 @@ app.MapUsuarioEndpoints();
 app.MapLeituraEnchenteEndpoints();
 app.MapAlertaEndpoints();
 app.MapRequisicaoIdempotenciaEndpoints();
+
+// Liveness: confirma que o processo da API está respondendo, sem depender do Oracle.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live"),
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse
+})
+.AllowAnonymous()
+.DisableRateLimiting();
+
+// Readiness: confirma que a dependência Oracle está acessível.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse
+})
+.AllowAnonymous()
+.DisableRateLimiting();
+
+// Visão agregada: retorna o resultado de todos os Health Checks registrados.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthCheckResponseWriter.WriteResponse
+})
+.AllowAnonymous()
+.DisableRateLimiting();
 
 app.Run();
 
