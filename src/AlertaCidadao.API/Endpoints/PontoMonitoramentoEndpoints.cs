@@ -42,6 +42,7 @@ public static class PontoMonitoramentoEndpoints
             return Results.Created($"/api/pontos-monitoramento/{resultado.Dados!.IdPonto}", resultado.Dados);
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("CriarPontoMonitoramento")
             .WithSummary("Cadastra um novo ponto de monitoramento.")
             .WithDescription("Cadastra um ponto com código único, nome e dados opcionais de endereço e coordenadas. Latitude e longitude devem ser informadas juntas. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
@@ -55,6 +56,7 @@ public static class PontoMonitoramentoEndpoints
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("AtualizarPontoMonitoramento")
             .WithSummary("Atualiza um ponto de monitoramento.")
             .WithDescription("Atualiza código, nome, endereço, coordenadas e situação do ponto informado.")
@@ -66,6 +68,7 @@ public static class PontoMonitoramentoEndpoints
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("DesativarPontoMonitoramento")
             .WithSummary("Desativa um ponto de monitoramento.")
             .WithDescription("Desativa o ponto sem apagar seu histórico de leituras.")

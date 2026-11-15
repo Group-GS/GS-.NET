@@ -1,32 +1,50 @@
+using AlertaCidadao.API.Authentication;
 using AlertaCidadao.API.Filters;
 using AlertaCidadao.API.Extensions;
 using AlertaCidadao.Application.DTOs;
+using AlertaCidadao.Application.Interfaces;
 using AlertaCidadao.Application.Services;
+
 namespace AlertaCidadao.API.Endpoints;
+
 public static class UsuarioEndpoints
 {
     public static void MapUsuarioEndpoints(this WebApplication app)
     {
         var grupo = app.MapGroup("/api/usuarios").WithTags("Usuários");
 
-        grupo.MapGet("/", async Task<IResult> (IUsuarioService service, bool? incluirInativos, CancellationToken ct) =>
-            Results.Ok(await service.ListarAsync(incluirInativos == true, ct)))
-            .WithName("ListarUsuarios")
-            .WithSummary("Lista os usuários cadastrados.")
-            .WithDescription("Retorna usuários ativos por padrão. Informe incluirInativos=true para incluir usuários desativados. Senhas e hashes nunca são retornados.")
-            .Produces<IReadOnlyList<UsuarioDto>>(StatusCodes.Status200OK);
-
-        grupo.MapGet("/{id:long}", async Task<IResult> (long id, IUsuarioService service, CancellationToken ct) =>
+        grupo.MapPost("/login", async Task<IResult> (
+            LoginRequest request,
+            IUsuarioRepository repository,
+            IPasswordHasher passwordHasher,
+            ITokenService tokenService,
+            CancellationToken ct) =>
         {
-            var resultado = await service.ObterPorIdAsync(id, ct);
-            return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
-        })
-            .WithName("ObterUsuarioPorId")
-            .WithSummary("Consulta um usuário pelo ID.")
-            .WithDescription("Retorna os dados públicos do usuário. A senha e o hash não fazem parte da resposta.")
-            .Produces<UsuarioDto>(StatusCodes.Status200OK).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
+            var validacao = ValidacaoRequest.Validar(request);
+            if (validacao is not null) return Results.BadRequest(validacao);
 
-        grupo.MapPost("/", async Task<IResult> (CriarUsuarioRequest request, IUsuarioService service, CancellationToken ct) =>
+            var email = request.Email.Trim().ToLowerInvariant();
+            var usuario = await repository.ObterPorEmailAsync(email, ct);
+
+            // A mesma resposta é usada para e-mail inexistente e senha incorreta.
+            if (usuario is null || !usuario.Ativo ||
+                !passwordHasher.VerificarSenha(request.Senha, usuario.SenhaHash))
+                return Results.Unauthorized();
+
+            var (token, expiraEm) = tokenService.GerarToken(usuario);
+            return Results.Ok(new LoginResponse(
+                token, "Bearer", expiraEm, usuario.IdUsuario,
+                usuario.Nome, usuario.Email, usuario.Perfil));
+        })
+        .WithName("Login")
+        .WithSummary("Autentica um usuário e retorna um token JWT.")
+        .AllowAnonymous()
+        .Produces<LoginResponse>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized);
+
+        grupo.MapPost("/", async Task<IResult> (
+            CriarUsuarioRequest request, IUsuarioService service, CancellationToken ct) =>
         {
             var validacao = ValidacaoRequest.Validar(request);
             if (validacao is not null) return Results.BadRequest(validacao);
@@ -34,34 +52,65 @@ public static class UsuarioEndpoints
             if (!resultado.Sucesso) return resultado.ToErrorResult();
             return Results.Created($"/api/usuarios/{resultado.Dados!.IdUsuario}", resultado.Dados);
         })
-            .AddEndpointFilter<IdempotencyEndpointFilter>()
-            .WithName("CriarUsuario")
-            .WithSummary("Cadastra um novo usuário.")
-            .WithDescription("Valida nome, e-mail, senha, telefone e perfil. A senha é armazenada usando PBKDF2-SHA256 e nunca é devolvida pela API. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
-            .Produces<UsuarioDto>(StatusCodes.Status201Created).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
+        .AddEndpointFilter<IdempotencyEndpointFilter>()
+        .WithName("CriarUsuario")
+        .WithSummary("Cadastra um novo cidadão.")
+        .WithDescription("O cadastro público cria usuários com perfil CIDADAO. A senha é armazenada usando PBKDF2-SHA256.")
+        .AllowAnonymous()
+        .Produces<UsuarioDto>(StatusCodes.Status201Created)
+        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+        .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
-        grupo.MapPut("/{id:long}", async Task<IResult> (long id, AtualizarUsuarioRequest request, IUsuarioService service, CancellationToken ct) =>
+        grupo.MapGet("/", async Task<IResult> (
+            IUsuarioService service, bool? incluirInativos, CancellationToken ct) =>
+            Results.Ok(await service.ListarAsync(incluirInativos == true, ct)))
+        .WithName("ListarUsuarios")
+        .WithSummary("Lista os usuários cadastrados.")
+        .RequireAuthorization("Gestor")
+        .Produces<IReadOnlyList<UsuarioDto>>(StatusCodes.Status200OK);
+
+        grupo.MapGet("/{id:long}", async Task<IResult> (
+            long id, IUsuarioService service, CancellationToken ct) =>
+        {
+            var resultado = await service.ObterPorIdAsync(id, ct);
+            return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
+        })
+        .WithName("ObterUsuarioPorId")
+        .WithSummary("Consulta um usuário pelo ID.")
+        .RequireAuthorization("Gestor")
+        .Produces<UsuarioDto>(StatusCodes.Status200OK)
+        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+        .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
+
+        grupo.MapPut("/{id:long}", async Task<IResult> (
+            long id, AtualizarUsuarioRequest request, IUsuarioService service, CancellationToken ct) =>
         {
             var validacao = ValidacaoRequest.Validar(request);
             if (validacao is not null) return Results.BadRequest(validacao);
             var resultado = await service.AtualizarAsync(id, request, ct);
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
-            .AddEndpointFilter<IdempotencyEndpointFilter>()
-            .WithName("AtualizarUsuario")
-            .WithSummary("Atualiza um usuário existente.")
-            .WithDescription("Atualiza nome, e-mail, telefone, perfil e situação. A senha é opcional; quando enviada, é gerado um novo hash PBKDF2-SHA256.")
-            .Produces<UsuarioDto>(StatusCodes.Status200OK).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status404NotFound).Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
+        .AddEndpointFilter<IdempotencyEndpointFilter>()
+        .WithName("AtualizarUsuario")
+        .WithSummary("Atualiza um usuário existente.")
+        .RequireAuthorization("Gestor")
+        .Produces<UsuarioDto>(StatusCodes.Status200OK)
+        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+        .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound)
+        .Produces<ApiErrorResponse>(StatusCodes.Status409Conflict);
 
-        grupo.MapDelete("/{id:long}", async Task<IResult> (long id, IUsuarioService service, CancellationToken ct) =>
+        grupo.MapDelete("/{id:long}", async Task<IResult> (
+            long id, IUsuarioService service, CancellationToken ct) =>
         {
             var resultado = await service.ExcluirAsync(id, ct);
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
-            .AddEndpointFilter<IdempotencyEndpointFilter>()
-            .WithName("DesativarUsuario")
-            .WithSummary("Desativa um usuário.")
-            .WithDescription("Desativa o usuário sem apagar fisicamente o registro. O histórico permanece preservado.")
-            .Produces(StatusCodes.Status204NoContent).Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest).Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
+        .AddEndpointFilter<IdempotencyEndpointFilter>()
+        .WithName("DesativarUsuario")
+        .WithSummary("Desativa um usuário.")
+        .RequireAuthorization("Gestor")
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+        .Produces<ApiErrorResponse>(StatusCodes.Status404NotFound);
     }
 }

@@ -38,6 +38,7 @@ public static class LeituraEnchenteEndpoints
             return Results.Created($"/api/leituras-enchente/{resultado.Dados!.IdLeitura}", resultado.Dados);
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("CriarLeituraEnchente")
             .WithSummary("Registra uma nova leitura de enchente.")
             .WithDescription("Registra uma medição vinculada a um ponto ativo. A origem aceita SIMULACAO, SENSOR ou MANUAL; chave de evento e data/hora duplicadas são rejeitadas. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
@@ -51,6 +52,7 @@ public static class LeituraEnchenteEndpoints
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("AtualizarLeituraEnchente")
             .WithSummary("Atualiza uma leitura existente.")
             .WithDescription("Atualiza os dados de medição e sua origem. O ponto e a chave do evento permanecem vinculados ao registro original.")
@@ -62,6 +64,7 @@ public static class LeituraEnchenteEndpoints
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("ExcluirLeituraEnchente")
             .WithSummary("Exclui uma leitura de enchente.")
             .WithDescription("Remove a leitura quando ela não possui alerta associado. Se houver alerta vinculado, a API retorna conflito para preservar a integridade referencial.")

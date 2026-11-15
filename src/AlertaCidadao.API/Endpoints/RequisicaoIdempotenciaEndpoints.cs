@@ -6,7 +6,9 @@ public static class RequisicaoIdempotenciaEndpoints
 {
     public static void MapRequisicaoIdempotenciaEndpoints(this WebApplication app)
     {
-        var grupo = app.MapGroup("/api/requisicoes-idempotencia").WithTags("Requisições de Idempotência");
+        var grupo = app.MapGroup("/api/requisicoes-idempotencia")
+            .WithTags("Requisições de Idempotência")
+            .RequireAuthorization("Gestor");
 
         grupo.MapGet("/", async Task<IResult> (IRequisicaoIdempotenciaService service, CancellationToken ct) =>
             Results.Ok(await service.ListarAsync(ct)))

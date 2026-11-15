@@ -40,6 +40,7 @@ public static class AlertaEndpoints
             return Results.Created($"/api/alertas/{resultado.Dados!.IdAlerta}", resultado.Dados);
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("CriarAlerta")
             .WithSummary("Cria um alerta para uma leitura.")
             .WithDescription("Cria um alerta associado a uma leitura existente. Cada leitura pode ter apenas um alerta associado. Aceita o header opcional Idempotency-Key para impedir a execução duplicada.")
@@ -53,6 +54,7 @@ public static class AlertaEndpoints
             return resultado.Sucesso ? Results.Ok(resultado.Dados) : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("AtualizarAlerta")
             .WithSummary("Atualiza os dados de um alerta.")
             .WithDescription("Atualiza classificação, probabilidade, mensagem explicativa, modelo e status. Quando o status passa para RESOLVIDO, a data de resolução é registrada.")
@@ -64,6 +66,7 @@ public static class AlertaEndpoints
             return resultado.Sucesso ? Results.NoContent() : resultado.ToErrorResult();
         })
             .AddEndpointFilter<IdempotencyEndpointFilter>()
+            .RequireAuthorization("Gestor")
             .WithName("ExcluirAlerta")
             .WithSummary("Exclui um alerta.")
             .WithDescription("Remove o alerta indicado pelo ID. A operação não remove a leitura de enchente associada.")

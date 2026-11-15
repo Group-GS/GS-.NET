@@ -13,6 +13,9 @@ public sealed class UsuarioRepository(AlertaCidadaoDbContext context) : IUsuario
     }
     public Task<Usuario?> ObterPorIdAsync(long id, CancellationToken ct = default) =>
         context.Usuarios.FirstOrDefaultAsync(x => x.IdUsuario == id, ct);
+    public Task<Usuario?> ObterPorEmailAsync(string email, CancellationToken ct = default) =>
+        context.Usuarios.FirstOrDefaultAsync(x => x.Email == email, ct);
+
     public async Task<bool> EmailExisteAsync(string email, long? ignorarId = null, CancellationToken ct = default)
     {
         var query = context.Usuarios.AsNoTracking().Where(x => x.Email == email);
